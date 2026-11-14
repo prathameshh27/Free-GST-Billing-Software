@@ -4,7 +4,7 @@ This fork adds a hosted web version of Free GST Billing Software: one app on
 a server, used in the browser by several businesses, each with its own data
 and users, behind a login, with the data in MySQL.
 
-Live: **https://130-210-127-108.sslip.io** (Oracle Cloud Always Free VM `free-vm`, database `free-mysql`).
+Live: **https://oms-in.duckdns.org** (free DuckDNS name pointed at 130.210.127.108; the first address https://130-210-127-108.sslip.io redirects to it) (Oracle Cloud Always Free VM `free-vm`, database `free-mysql`).
 
 The original desktop app (`server.js`, file storage, PIN lock) is unchanged and
 still builds as before. Everything cloud-specific lives in `cloud/` and

@@ -1,8 +1,10 @@
 # /etc/caddy/Caddyfile - HTTPS in front of the GST Portal.
-# Caddy gets and renews a free Let's Encrypt certificate for the name below
-# by itself (ports 80 and 443 must be open). To use your own domain later,
-# point its DNS at the server and change the name here.
-130-210-127-108.sslip.io {
+# Caddy gets and renews free Let's Encrypt certificates for these names by
+# itself (ports 80 and 443 must be open).
+#
+# oms-in.duckdns.org: free DuckDNS name (duckdns.org account), pointed at
+# 130.210.127.108. If the server's IP ever changes, update it there.
+oms-in.duckdns.org {
 	encode zstd gzip
 	reverse_proxy 127.0.0.1:3000
 	header {
@@ -14,4 +16,9 @@
 			roll_keep 5
 		}
 	}
+}
+
+# The first address (no DNS needed); kept so old bookmarks still work.
+130-210-127-108.sslip.io {
+	redir https://oms-in.duckdns.org{uri} permanent
 }
