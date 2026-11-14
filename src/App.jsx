@@ -46,6 +46,9 @@ import { isOfflineMode } from './utils/offlineMode';
 import HelpButton from './components/HelpButton';
 import { lockNow } from './utils/appLock';
 import { getPrintSettings } from './utils/printSettings';
+// [cloud] hosted, multi-business build (VITE_CLOUD=1)
+import { CLOUD, cloudMenuFilter } from './cloud/cloudSession';
+import AccountPanel from './cloud/AccountPanel';
 
 const openDocs = () => window.open(DOCS_URL, '_blank', 'noopener,noreferrer');
 
@@ -515,7 +518,9 @@ function App() {
   useEffect(() => onMenuChanged(() => setMenuTick(t => t + 1)), []);
   // Sidebar items in the saved order; hidden ones dropped. `module: null`
   // items (Settings, Support & About, Lock app) are always shown.
-  const menu = orderedMenu(getMenuOrder()).filter(m => !m.module || showIfModule(m.module));
+  // [cloud] cloudMenuFilter drops desktop-only items (Control Panel, PIN lock,
+  // Offline mode) in the hosted app, and New Invoice for read-only users.
+  const menu = orderedMenu(getMenuOrder()).filter(m => !m.module || showIfModule(m.module)).filter(cloudMenuFilter);
 
   // If the user just disabled the module backing the current view, kick them to dashboard
   // so they don't land on an empty page after toggling.
@@ -922,6 +927,8 @@ function App() {
           </button>
         </div>
 
+        {/* [cloud] the hosted app's business / account panel replaces the profile switcher */}
+        {CLOUD ? <AccountPanel /> : (
         <div className="profile-switcher" ref={profileMenuRef} style={{ position: 'relative' }}>
           <div className="profile-switcher-row">
             <button
@@ -962,6 +969,7 @@ function App() {
             </div>
           )}
         </div>
+        )}
 
         <nav className="sidebar-nav">
           {navItems.map(item => (

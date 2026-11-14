@@ -16,3 +16,7 @@
 
 # Linux packages and the Docker image: every file is read on Linux.
 packaging/**  text eol=lf
+
+# [cloud] files that run on the Linux server must keep Unix line endings
+cloud/deploy/** text eol=lf
+cloud/**/*.sql text eol=lf

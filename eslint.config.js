@@ -41,7 +41,8 @@ export default defineConfig([
   },
   // The server and the build / test scripts run in Node, not the browser.
   {
-    files: ['server.js', 'scripts/**/*.{js,mjs}', 'packaging/**/*.mjs', 'installer/*.mjs', 'src/utils/appHome.js', 'src/utils/serverLock.js', 'src/utils/setupDownload.js', 'tests/**/*.{js,mjs}', 'docs-site/*.mjs', 'docs-site/pages/*.mjs'],
+    // [cloud] cloud/** is the hosted app's server; vite.config.js reads VITE_CLOUD.
+    files: ['server.js', 'cloud/**/*.{js,mjs}', 'vite.config.js', 'scripts/**/*.{js,mjs}', 'packaging/**/*.mjs', 'installer/*.mjs', 'src/utils/appHome.js', 'src/utils/serverLock.js', 'src/utils/setupDownload.js', 'tests/**/*.{js,mjs}', 'docs-site/*.mjs', 'docs-site/pages/*.mjs'],
     languageOptions: { globals: { ...globals.node } },
   },
 ])

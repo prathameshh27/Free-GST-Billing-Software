@@ -1,0 +1,30 @@
+# /etc/systemd/system/gst-portal.service
+[Unit]
+Description=GST Portal (hosted multi-business GST billing)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gstportal
+Group=gstportal
+WorkingDirectory=/opt/gst-portal
+Environment=GSP_ENV_FILE=/etc/gst-portal/env
+Environment=NODE_ENV=production
+Environment=TZ=Asia/Kolkata
+ExecStart=/usr/bin/node --max-old-space-size=256 cloud/server/index.js
+Restart=always
+RestartSec=5
+# Hardening: the app only needs its own folder and the network.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadOnlyPaths=/opt/gst-portal
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+MemoryMax=400M
+
+[Install]
+WantedBy=multi-user.target

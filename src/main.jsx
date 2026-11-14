@@ -8,6 +8,10 @@ import { toast } from './components/Toast.jsx'
 import { logProblem } from './utils/problemLog'
 import { isChunkLoadError } from './utils/errorReport'
 import { restorePrefs, startMirroring } from './utils/prefsMirror'
+// [cloud] hosted, multi-business build (VITE_CLOUD=1)
+import { CLOUD } from './cloud/cloudSession'
+import CloudGate from './cloud/CloudGate.jsx'
+import { SuperAdminPanel } from './cloud/AdminPanels.jsx'
 // v1.10.83 - Inter from the app's own files, not Google Fonts. Each file holds
 // every alphabet with a unicode-range, so the browser fetches only the parts it
 // needs (Latin; Latin-extended has the ₹ sign).
@@ -171,6 +175,21 @@ window.addEventListener('unhandledrejection', (e) => {
   try { recordUncaught(e?.reason?.message || e?.reason, e?.reason?.stack, e?.reason?.problemLogged); } catch { /* never throw from here */ }
 });
 
+// [cloud] The hosted app: sign-in instead of the PIN lock. CloudGate loads
+// the business's settings itself once someone is signed in.
+if (CLOUD) {
+  createRoot(document.getElementById('root')).render(
+    <StrictMode>
+      <ErrorBoundary>
+        <CloudGate SuperAdminPanel={SuperAdminPanel}>
+          <ErrorBoundary>
+            <App />
+          </ErrorBoundary>
+        </CloudGate>
+      </ErrorBoundary>
+    </StrictMode>,
+  )
+} else
 // v1.10.77 (#84) - settings the browser has lost come back from the data
 // folder before the first render (the wizard and Region read them on start).
 restorePrefs().then((restored) => {

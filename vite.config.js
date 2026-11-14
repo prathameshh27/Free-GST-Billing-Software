@@ -24,6 +24,12 @@ const readActivePort = () => {
 };
 const activeExpressPort = readActivePort();
 
+// [cloud] VITE_CLOUD=1 builds the hosted, multi-business app (cloud/server).
+// API answers are never kept in the offline cache there: several people use
+// one browser, and one person's books must never show after another logs in.
+const CLOUD = process.env.VITE_CLOUD === '1'
+const CLOUD_DEV_PORT = Number(process.env.GSP_PORT || 3000)
+
 export default defineConfig({
   // v1.10.83 - the Problem log stamps each entry with the version of the
   // bundle that failed; it must not depend on reaching the server.
@@ -191,7 +197,7 @@ export default defineConfig({
         // v1.10.83 - a new version reloads open windows of the old one, which
         // can be stuck blank after an update (public/sw-reload.js).
         importScripts: ['sw-reload.js'],
-        runtimeCaching: [
+        runtimeCaching: ([
           // v1.10.84 - opening the app: the page from the app first, so it always
           // opens on the newest version; the last copy only when the app's server
           // does not answer (it then shows "Needs a Quick Start" and waits).
@@ -257,7 +263,7 @@ export default defineConfig({
               cacheableResponse: { statuses: [0, 200] },
             },
           },
-        ],
+        ]).filter((rule) => !(CLOUD && rule.options?.cacheName === 'api-cache')),
       },
     }),
   ],
@@ -292,7 +298,7 @@ export default defineConfig({
       // `data/port.txt` at Vite start (see `activeExpressPort` at top
       // of file). Restart Vite if the server rebooted onto a new port.
       '/api': {
-        target: `http://localhost:${activeExpressPort}`,
+        target: `http://localhost:${CLOUD ? CLOUD_DEV_PORT : activeExpressPort}`,
         changeOrigin: true,
       }
     }

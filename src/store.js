@@ -36,6 +36,12 @@ async function apiFetch(url, options = {}) {
     const err = new Error(body?.error || `API error: ${res.status}`);
     err.status = res.status;
     err.body = body;
+    // [cloud] signed out (expired / logged out elsewhere) or read-only user:
+    // CloudGate shows the sign-in screen or a note (src/cloud/CloudGate.jsx).
+    if (import.meta.env.VITE_CLOUD === '1') {
+      if (res.status === 401) window.dispatchEvent(new Event('gsp-unauthenticated'));
+      else if (res.status === 403 && body?.code === 'read-only') window.dispatchEvent(new Event('gsp-read-only'));
+    }
     if (res.status >= 500) {
       logApiProblem(options, url, res.status, err.message);
       err.problemLogged = true;
