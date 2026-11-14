@@ -34,18 +34,24 @@ export function getPool() {
 export const q = async (sql, params = []) => (await getPool().query(sql, params))[0];
 
 // Runs fn(conn) in a transaction; commits on success, rolls back on throw.
-export async function tx(fn) {
-  const conn = await getPool().getConnection();
-  try {
-    await conn.beginTransaction();
-    const out = await fn(conn);
-    await conn.commit();
-    return out;
-  } catch (err) {
-    try { await conn.rollback(); } catch { /* connection gone */ }
-    throw err;
-  } finally {
-    conn.release();
+// A deadlock or lock timeout (InnoDB picks a victim when two transactions
+// wait on each other) is retried a few times: the work is simply redone.
+const RETRYABLE = new Set(['ER_LOCK_DEADLOCK', 'ER_LOCK_WAIT_TIMEOUT']);
+export async function tx(fn, attempts = 4) {
+  for (let i = 1; ; i++) {
+    const conn = await getPool().getConnection();
+    try {
+      await conn.beginTransaction();
+      const out = await fn(conn);
+      await conn.commit();
+      return out;
+    } catch (err) {
+      try { await conn.rollback(); } catch { /* connection gone */ }
+      if (!RETRYABLE.has(err?.code) || i >= attempts) throw err;
+      await new Promise((r) => setTimeout(r, 20 * i + Math.random() * 30));
+    } finally {
+      conn.release();
+    }
   }
 }
 

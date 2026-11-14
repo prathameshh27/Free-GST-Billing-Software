@@ -47,6 +47,7 @@ async function nextInvoiceNumber(businessId, prefix, invoiceType, businessKey) {
   const seriesMap = await S.getMeta(businessId, 'invoiceNumberSeries');
   const series = numberSeriesFor(settings, seriesMap, businessKey);
   const key = counterKeyFor(prefix, series, businessKey);
+  await S.ensureMeta(businessId, key);
   const next = await tx(async (conn) => {
     const n = nextCounterValue(await S.lockMeta(conn, businessId, key), startFor(invoiceType, series));
     await S.setMeta(businessId, key, n, conn);

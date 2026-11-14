@@ -109,10 +109,15 @@ export async function allMeta(businessId) {
   return Object.fromEntries(rows.map((r) => [r.k, parse(r.v)]));
 }
 
+// Makes sure a meta row exists. Run OUTSIDE the transaction (autocommit): two
+// transactions inserting the same new row at once deadlock in InnoDB.
+export async function ensureMeta(businessId, key) {
+  await q('INSERT IGNORE INTO business_meta (business_id, k, v) VALUES (?, ?, NULL)', [businessId, key]);
+}
+
 // Locks one meta key for the rest of the transaction and returns its value.
-// The row is created first, so two first-time increments can't both insert.
+// Call ensureMeta(businessId, key) before starting the transaction.
 export async function lockMeta(conn, businessId, key) {
-  await conn.query('INSERT IGNORE INTO business_meta (business_id, k, v) VALUES (?, ?, NULL)', [businessId, key]);
   const [rows] = await conn.query('SELECT v FROM business_meta WHERE business_id = ? AND k = ? FOR UPDATE', [businessId, key]);
   return rows.length ? parse(rows[0].v) : null;
 }

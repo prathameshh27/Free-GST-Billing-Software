@@ -178,7 +178,8 @@ export function requireBusiness(req, res, next) {
 const SUPPORT_WRITE_ALLOWED = new Set(['/api/local-prefs', '/api/client-errors', '/api/save-pdf', '/api/saved-pdf/cancel-mark', '/api/trash-pdf']);
 export function enforceRole(req, res, next) {
   if (!req.ctx || req.method === 'GET' || req.method === 'HEAD') return next();
-  if (req.ctx.role === 'support' && !SUPPORT_WRITE_ALLOWED.has(req.path)) {
+  // baseUrl + path: inside the /api mount, req.path has no /api prefix.
+  if (req.ctx.role === 'support' && !SUPPORT_WRITE_ALLOWED.has(req.baseUrl + req.path)) {
     return res.status(403).json({ error: 'Your account has read-only access', code: 'read-only' });
   }
   return next();

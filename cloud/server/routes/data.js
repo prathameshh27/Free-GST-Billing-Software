@@ -302,6 +302,7 @@ dataRouter.post('/meta/:key/raise', async (req, res) => {
   if (!/^counter_/.test(req.params.key) || forbiddenKey(req.params.key)) return bad(res);
   const value = Math.floor(Number(req.body?.value));
   if (!Number.isFinite(value) || value < 1 || value > 999999999) return bad(res);
+  await S.ensureMeta(biz(req), req.params.key);
   const out = await tx(async (conn) => {
     const current = Math.max(0, Math.floor(Number(await S.lockMeta(conn, biz(req), req.params.key)) || 0));
     if (value > current) await S.setMeta(biz(req), req.params.key, value, conn);
@@ -313,6 +314,7 @@ dataRouter.post('/meta/:key/raise', async (req, res) => {
 // at the same moment can never get the same invoice number.
 dataRouter.post('/meta/:key/increment', async (req, res) => {
   if (forbiddenKey(req.params.key)) return bad(res, 'Refused', 'forbidden', 403);
+  await S.ensureMeta(biz(req), req.params.key);
   const next = await tx(async (conn) => {
     const current = await S.lockMeta(conn, biz(req), req.params.key);
     const n = nextCounterValue(current, req.body?.start);
@@ -326,6 +328,7 @@ dataRouter.post('/meta/:key/increment', async (req, res) => {
 dataRouter.post('/number-series/rename', async (req, res) => {
   const { from, to } = req.body || {};
   if (!from || !to || typeof from !== 'string' || typeof to !== 'string' || from === to) return bad(res);
+  await S.ensureMeta(biz(req), 'invoiceNumberSeries');
   const moved = await tx(async (conn) => {
     const series = (await S.lockMeta(conn, biz(req), 'invoiceNumberSeries')) || {};
     if (!series[from] || series[to]) return false;
@@ -362,6 +365,7 @@ dataRouter.post('/local-prefs', express.json({ limit: '25mb' }), async (req, res
   const { set = {}, remove = [] } = req.body || {};
   if (!isObj(set) || !Array.isArray(remove)) return bad(res);
   if (req.ctx.role === 'support') return res.json({ success: true, saved: false });
+  await S.ensureMeta(biz(req), PREFS_KEY);
   await tx(async (conn) => {
     const prefs = (await S.lockMeta(conn, biz(req), PREFS_KEY)) || {};
     for (const [k, v] of Object.entries(set)) if (typeof v === 'string') prefs[k] = v;
