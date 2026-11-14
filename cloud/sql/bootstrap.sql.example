@@ -1,0 +1,11 @@
+-- One-time database setup for the GST Portal, run ONCE as the MySQL admin
+-- (dbadmin on HeatWave). Copy, replace CHANGE_ME with a long random password
+-- (it also goes into /etc/gst-portal/env as GSP_DB_PASSWORD), then:
+--   mysql -h 10.0.0.124 -u dbadmin -p < bootstrap.sql && rm bootstrap.sql
+-- The app creates and upgrades its own tables on start (cloud/server/migrations).
+
+CREATE DATABASE IF NOT EXISTS gst_portal     CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+CREATE DATABASE IF NOT EXISTS gst_portal_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+CREATE USER IF NOT EXISTS 'gst_app'@'%' IDENTIFIED BY 'CHANGE_ME' REQUIRE SSL;
+GRANT ALL PRIVILEGES ON gst_portal.*     TO 'gst_app'@'%';
+GRANT ALL PRIVILEGES ON gst_portal_dev.* TO 'gst_app'@'%';

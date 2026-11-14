@@ -98,6 +98,69 @@ gunzip -c /var/backups/gst-portal/gst_portal-2026-11-14.sql.gz | MYSQL_PWD=... m
 sudo systemctl start gst-portal
 ```
 
+## First-time server setup (rebuilding from scratch)
+
+What was done once on the current server, in order. `deploy.sh` does everything after step 6.
+
+1. **Database:** copy `cloud/sql/bootstrap.sql.example`, set a password, run it once as the
+   MySQL admin (creates `gst_portal`, `gst_portal_dev`, user `gst_app` with `REQUIRE SSL`).
+2. **Packages:** Node.js 22 (NodeSource apt repo), Caddy (Caddy's stable apt repo),
+   `mysql-client` (for the nightly dump), `iptables-persistent`.
+3. **Service user:** `sudo useradd --system --no-create-home --shell /usr/sbin/nologin gstportal`
+4. **Settings:** `/etc/gst-portal/env` from `cloud/env.example` with the production values
+   (`GSP_PUBLIC_ORIGIN=https://oms-in.duckdns.org`, `GSP_COOKIE_SECURE=1`, `GSP_DB_HOST=10.0.0.124`,
+   `GSP_DB_NAME=gst_portal`, `GSP_RUN_RECURRING=1`, `TZ=Asia/Kolkata`), owner `root:gstportal`, mode 640.
+5. **Firewalls:** TCP 80 and 443 open in the cloud security list **and** in iptables
+   (`sudo netfilter-persistent save`).
+6. **Name:** DNS name pointed at the server's public IP (DuckDNS `oms-in`), and the same name in
+   `cloud/deploy/Caddyfile` and `GSP_PUBLIC_ORIGIN`.
+7. **Deploy:** `bash cloud/deploy/deploy.sh` (installs the systemd units, Caddyfile and backup timer).
+8. **First login:** `cli.js create-superadmin <email> "<name>"` on the server (asks for the password).
+
+## File map
+
+| Path | What |
+|---|---|
+| `cloud/server/index.js` | start-up: migrations, HTTP server, hourly recurring invoices, daily housekeeping |
+| `cloud/server/app.js` | Express app: security headers, body limits, routing, static `dist/`, desktop-only stand-ins |
+| `cloud/server/auth.js` | passwords, sessions, rate limit, origin guard, role / business middleware |
+| `cloud/server/store.js` | business-scoped storage on MySQL (records, meta, audit) |
+| `cloud/server/db.js` | connection pool (TLS), transactions with deadlock retry, migrations |
+| `cloud/server/routes/auth.js` | `/api/auth/*` |
+| `cloud/server/routes/admin.js` | `/api/admin/*` |
+| `cloud/server/routes/data.js` | the app's data routes, ported from `server.js` |
+| `cloud/server/recurring.js` | recurring invoices (Generate Now + hourly auto-fire) |
+| `cloud/server/cli.js` | operator commands (create-superadmin, reset-password, list-users) |
+| `cloud/server/migrations/*.sql` | database schema, applied in order on start |
+| `cloud/sql/bootstrap.sql.example` | one-time database + login creation (run as MySQL admin) |
+| `cloud/deploy/` | `deploy.sh`, `Caddyfile`, systemd units, nightly `backup.sh` |
+| `cloud/tests/api.test.mjs` | API tests (`npm run test:cloud`) |
+| `cloud/scripts/` | `dev.mjs` (`npm run dev:cloud`), `build.mjs` (`npm run build:cloud`) |
+| `cloud/env.example` | every setting, documented |
+| `src/cloud/` | screens: `CloudGate` (sign-in, password, business picker), `AccountPanel` (sidebar), `AdminPanels` (Users, Businesses), `cloudSession` |
+
+## Cloud-only API routes
+
+All under `/api`, JSON, session cookie. Writes need the app's own `Origin`.
+
+| Route | Who | Purpose |
+|---|---|---|
+| `POST /auth/login` `{email, password}` | anyone | sign in (sets the cookie) |
+| `POST /auth/logout` | signed in | sign out |
+| `GET /auth/me` | signed in | user, current business, role, businesses they can open |
+| `POST /auth/switch-business` `{businessId}` | signed in | change the session's business |
+| `POST /auth/change-password` `{currentPassword, newPassword}` | signed in | own password (logs out other devices) |
+| `GET/POST /admin/businesses`, `PATCH /admin/businesses/:id` | super admin | list, create (with first admin), rename, GSTIN, disable |
+| `GET /admin/overview` | super admin | per-business quotations, invoices, amount invoiced, last activity |
+| `GET/POST /admin/users` | admin / super admin | list, create or add an existing login to the business |
+| `PUT/DELETE /admin/users/:id/membership` | admin / super admin | change role / remove from business (last admin protected) |
+| `POST /admin/users/:id/reset-password` | admin (own-business-only users) / super admin | temporary password, user must change it |
+| `PATCH /admin/users/:id` | super admin | rename, disable / enable a login everywhere |
+| `GET /admin/audit` | admin / super admin | last 200 activity entries of the business |
+
+Every other `/api/*` route is the desktop app's contract (see `src/store.js`),
+scoped to the session's business.
+
 ## Pulling the original author's updates
 
 ```bash
