@@ -41,6 +41,8 @@ export default function AccountPanel() {
         {me.readOnly ? <Eye size={12} /> : <ShieldCheck size={12} />}
         <span style={{
           fontWeight: 600,
+          whiteSpace: 'nowrap',
+          flexShrink: 0,
           color: me.readOnly ? 'var(--warning-text, #b45309)' : 'inherit',
         }}>{ROLE_LABEL[me.role] || me.role}</span>
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {me.user.email}</span>
